@@ -19,23 +19,26 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 load_dotenv()
 
+
 def generate_auth_header(method: str, params_str: str, secret: str, key: str) -> str:
+    # https://zadarma.com/en/support/api/#intro_authorization
     md5_hash = hashlib.md5(params_str.encode("utf-8")).hexdigest()
     data_to_sign = f"{method}{params_str}{md5_hash}"
-    hmac_digest = hmac.new(
+    hmac_hex = hmac.new(
         secret.encode("utf-8"),
         data_to_sign.encode("utf-8"),
         hashlib.sha1
-    ).digest()
-    base64_signature = base64.b64encode(hmac_digest).decode("utf-8")
+    ).hexdigest()
+    base64_signature = base64.b64encode(hmac_hex.encode("utf-8")).decode("utf-8")
     return f"{key}:{base64_signature}"
 
 
 async def fetch_call_recording_data(call_id: str):
+    # https://zadarma.com/en/support/api/#api_pbx_record_request
     api_method = "/v1/pbx/record/request/"
     params = {"call_id": call_id}
     sorted_params = sorted(params.items())
-    params_str = "&".join(f"{k}={v}" for k, v in sorted_params)
+    params_str = "".join(f"{k}={v}" for k, v in sorted_params)
     auth_header = generate_auth_header(api_method, params_str, os.getenv("ZADARMA_SECRET"), os.getenv("ZADARMA_KEY"))
     headers = {"Authorization": auth_header}
     url = f"{os.getenv('ZADARMA_API_URL')}{api_method}"
