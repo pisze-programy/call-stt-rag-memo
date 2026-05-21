@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import io
 import logging
 import os
 import sys
@@ -8,6 +9,7 @@ import sys
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Query, Request, Response
+from openai import AsyncOpenAI
 
 logging.basicConfig(
     stream=sys.stderr,
@@ -33,6 +35,34 @@ def generate_auth_header(method: str, params_str: str, secret: str, key: str) ->
     return f"{key}:{base64_signature}"
 
 
+async def process_recording_to_text(download_url: str, call_id_with_rec: str) -> str:
+    openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.get(download_url)
+            if response.status_code != 200:
+                logger.error(f"DOWNLOAD FAILED: {response.status_code}")
+                return ""
+
+            audio_bytes = response.content
+            audio_file = io.BytesIO(audio_bytes)
+            audio_file.name = f"{call_id_with_rec}.mp3"
+
+            transcription = await openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                language="pl"
+            )
+
+            logger.info(f"STT SUCCESS | TEXT: {transcription.text}")
+            return transcription.text
+
+        except Exception as e:
+            logger.error(f"STT PROCESSING ERROR: {str(e)}")
+            return ""
+
+
 async def fetch_call_recording_data(call_id: str):
     # https://zadarma.com/en/support/api/#api_pbx_record_request
     api_method = "/v1/pbx/record/request/"
@@ -49,6 +79,7 @@ async def fetch_call_recording_data(call_id: str):
             if response.status_code == 200:
                 data = response.json()
                 logger.info(f"ZADARMA API RESPONSE: {data}")
+                await process_recording_to_text(data["link"], call_id)
                 return data
             else:
                 logger.error(f"ZADARMA API ERROR: {response.status_code} | {response.text}")
