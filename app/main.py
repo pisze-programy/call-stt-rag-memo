@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
@@ -9,4 +11,5 @@ load_dotenv()
 app = FastAPI()
 app.include_router(webhook_router)
 
-client = db.connect_to_database("mongodb://localhost:27017", "memo_store")
+MONGO_URI = os.getenv("MONGO_URI")
+client = db.connect_to_database(MONGO_URI, "memo_store")
