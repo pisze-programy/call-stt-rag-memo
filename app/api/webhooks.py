@@ -1,10 +1,7 @@
 from fastapi import Query, Request, Response, APIRouter
-from kafka import KafkaProducer
 
-from app.modules.kafka_client import producer
+from app.modules.kafka_client import get_producer
 from app.modules.logger import logger
-from app.modules.stt_manager import save_stt_to_vector_db, process_recording_to_text
-from app.modules.zadarma_manager import fetch_call_recording_data
 
 router = APIRouter()
 
@@ -34,6 +31,6 @@ async def handle_zadarma_webhook(request: Request):
 
     topic = topic_map.get(event_type)
     if topic:
-        producer.send(topic, value=payload)
+        get_producer().send(topic, value=payload)
 
     return Response(content="OK", media_type="text/plain")

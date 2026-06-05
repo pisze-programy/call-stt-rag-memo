@@ -8,6 +8,6 @@ if os.path.exists(VENV_PACKAGES):
     sys.path.insert(0, VENV_PACKAGES)
 
 from a2wsgi import ASGIMiddleware
-from main import app
+from app.main import app
 
 application = ASGIMiddleware(app)

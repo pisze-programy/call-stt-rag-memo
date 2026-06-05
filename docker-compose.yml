@@ -1,7 +1,21 @@
 services:
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - kafka
+      - mongodb
+
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     ports:
       - "9092:9092"
     environment:
@@ -16,6 +30,7 @@ services:
       KAFKA_CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Q1'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+
   mongodb:
     image: mongo:latest
     container_name: mongodb
@@ -23,3 +38,20 @@ services:
       - "27017:27017"
     volumes:
       - ./mongo_data:/data/db
+  worker-start:
+    build: .
+    command: python -m app.workers.call_worker.start_worker
+    depends_on:
+      - kafka
+
+  worker-end:
+    build: .
+    command: python -m app.workers.call_worker.end_worker
+    depends_on:
+      - kafka
+
+  worker-record:
+    build: .
+    command: python -m app.workers.call_worker.record_worker
+    depends_on:
+      - kafka
