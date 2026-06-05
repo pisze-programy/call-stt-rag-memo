@@ -5,6 +5,7 @@ import io
 import logging
 import os
 import sys
+from urllib.parse import urlencode, quote
 
 import httpx
 from dotenv import load_dotenv
@@ -23,7 +24,7 @@ load_dotenv()
 
 
 def generate_auth_header(method: str, params_str: str, secret: str, key: str) -> str:
-    # https://zadarma.com/en/support/api/#intro_authorization
+    # AUTH https://zadarma.com/en/support/api/#intro_authorization
     md5_hash = hashlib.md5(params_str.encode("utf-8")).hexdigest()
     data_to_sign = f"{method}{params_str}{md5_hash}"
     hmac_hex = hmac.new(
@@ -63,28 +64,44 @@ async def process_recording_to_text(download_url: str, call_id_with_rec: str) ->
             return ""
 
 
-async def fetch_call_recording_data(call_id: str):
-    # https://zadarma.com/en/support/api/#api_pbx_record_request
-    api_method = "/v1/pbx/record/request/"
-    params = {"call_id": call_id}
-    sorted_params = sorted(params.items())
-    params_str = "".join(f"{k}={v}" for k, v in sorted_params)
-    auth_header = generate_auth_header(api_method, params_str, os.getenv("ZADARMA_SECRET"), os.getenv("ZADARMA_KEY"))
-    headers = {"Authorization": auth_header}
+async def zadarma_request(method: str, api_method: str, params: dict):
+    params_str = urlencode(sorted(params.items()), quote_via=quote, safe="")
+    auth_header = generate_auth_header(
+        api_method,
+        params_str,
+        os.getenv("ZADARMA_SECRET"),
+        os.getenv("ZADARMA_KEY")
+    )
+
     url = f"{os.getenv('ZADARMA_API_URL')}{api_method}"
+    headers = {"Authorization": auth_header, "Accept": "application/json"}
 
     async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(url, params=params, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                logger.info(f"ZADARMA API RESPONSE: {data}")
-                await process_recording_to_text(data["link"], call_id)
-                return data
-            else:
-                logger.error(f"ZADARMA API ERROR: {response.status_code} | {response.text}")
-        except Exception as e:
-            logger.error(f"ZADARMA API REQUEST FAILED: {str(e)}")
+        response = await client.request(method, url, params=params, headers=headers)
+        return response
+
+
+async def fetch_call_recording_data(call_id_with_rec: str):
+    # GET https://zadarma.com/en/support/api/#api_pbx_record_request
+    response = await zadarma_request("GET", "/v1/pbx/record/request/", {"call_id": call_id_with_rec})
+    if response.status_code == 200:
+        return response.json()
+    logger.error(f"FETCH FAILED: {response.status_code} | {response.text}")
+    return None
+
+
+async def delete_recording_data(pbx_call_id: str) -> bool:
+    # DELETE https://zadarma.com/en/support/api/#api_pbx_delete_record_request
+    response = await zadarma_request("DELETE", "/v1/pbx/record/request/", {"pbx_call_id": pbx_call_id})
+    if response.status_code == 200 and response.json().get("status") == "success":
+        logger.info(f"CLEANUP SUCCESS | Deleted: {pbx_call_id}")
+        return True
+    logger.error(f"CLEANUP FAILED: {response.status_code} | {response.text}")
+    return False
+
+def save_to_vector_db(caller_phone: str, text: str) -> bool:
+    logger.info(f"save_to_vector_db: {caller_phone}, {text}")
+    return True
 
 
 @app.get("/webhook/zadarma")
@@ -102,24 +119,25 @@ async def handle_zadarma_webhook(request: Request):
     logger.info(f"ZADARMA RAW PAYLOAD: {payload}")
 
     event = payload.get("event")
-    call_id = payload.get("pbx_call_id") or payload.get("call_id_with_prefix") or payload.get("call_id")
-    caller = payload.get("caller_id")
-    called = payload.get("called_did") or payload.get("called_id")
-    status = payload.get("disposition") or payload.get("status")
-    duration = payload.get("duration")
-    link = payload.get("rec_link") or payload.get("pbs_record_link")
-    text = payload.get("text")
-    language = payload.get("language")
+    # unique ID of the call with the call recording
     call_id_with_rec = payload.get("call_id_with_rec")
+    call_id = payload.get("call_id")
+    pbx_call_id = payload.get("pbx_call_id")
+    caller_phone = payload.get("caller_id")
 
-
-    logger.info(
-        f"ZADARMA PARSED -> Event: {event} | ID: {call_id} | Caller: {caller} | "
-        f"Called: {called} | Status: {status} | Duration: {duration}s | "
-        f"Link: {link} | Language: {language} | Text: {text}"
-    )
-
+    # https://zadarma.com/en/support/api/#api_webhook_notify_record
     if event == "NOTIFY_RECORD" and call_id_with_rec:
-        await fetch_call_recording_data(call_id_with_rec)
+        data = await fetch_call_recording_data(call_id_with_rec)
+
+        if data and "link" in data:
+            text = await process_recording_to_text(data["link"], call_id_with_rec)
+
+            if text:
+                save_to_vector_db(caller_phone, text)
+                logger.info(f"ZADARMA pbx_call_id: {pbx_call_id}")
+                logger.info(f"ZADARMA call_id_with_rec: {call_id_with_rec}")
+                await delete_recording_data(pbx_call_id)
+        else:
+            logger.error(f"ABORTED | No download link available for call: {call_id_with_rec}")
 
     return Response(content="OK", media_type="text/plain")
