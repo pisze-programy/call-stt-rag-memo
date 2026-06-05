@@ -34,3 +34,11 @@ OPENAI_API_KEY=
 KAFKA_BROKER=
 MONGO_URI=
 ```
+
+### Github Action Secrets
+```
+SERVER_IP=
+SSH_USERNAME=
+SSH_KEY=
+PROJECT_PATH=
+```
