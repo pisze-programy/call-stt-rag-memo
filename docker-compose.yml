@@ -5,7 +5,7 @@ services:
     env_file: .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
-      - "8000:8000"
+      - "80:8000"
     depends_on:
       - kafka
       - mongodb
@@ -40,20 +40,43 @@ services:
       - "27017:27017"
     volumes:
       - ./mongo_data:/data/db
+
   worker-start:
     build: .
-    command: python -m app.workers.call_worker.start_worker
+    command: python -m app.workers.call_start_worker
     depends_on:
       - kafka
+    env_file: .env
+    environment:
+      - KAFKA_BROKER=kafka:29092
+    restart: always
 
   worker-end:
     build: .
-    command: python -m app.workers.call_worker.end_worker
+    command: python -m app.workers.call_end_worker
     depends_on:
       - kafka
+    env_file: .env
+    environment:
+      - KAFKA_BROKER=kafka:29092
+    restart: always
 
   worker-record:
     build: .
-    command: python -m app.workers.call_worker.record_worker
+    command: python -m app.workers.record_worker
     depends_on:
       - kafka
+    env_file: .env
+    environment:
+      - KAFKA_BROKER=kafka:29092
+    restart: always
+
+  worker-sms:
+    build: .
+    command: python -m app.workers.sms_worker
+    depends_on:
+      - kafka
+    env_file: .env
+    environment:
+      - KAFKA_BROKER=kafka:29092
+    restart: always

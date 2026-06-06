@@ -26,7 +26,8 @@ async def handle_zadarma_webhook(request: Request):
     topic_map = {
         "NOTIFY_INTERNAL": "zadarma_start",
         "NOTIFY_END": "zadarma_end",
-        "NOTIFY_RECORD": "zadarma_record"
+        "NOTIFY_RECORD": "zadarma_record",
+        "SMS": 'zadarma_sms'
     }
 
     topic = topic_map.get(event_type)
