@@ -1,4 +1,5 @@
 import os
+from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -11,5 +12,10 @@ load_dotenv()
 app = FastAPI()
 app.include_router(webhook_router)
 
-MONGO_URI = os.getenv("MONGO_URI")
-client = db.connect_to_database(MONGO_URI, "memo_store")
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    await db.connect(os.getenv("MONGO_URI"), "memo_store")
+    yield
+    await db.close()
+
+app = FastAPI(lifespan=lifespan)

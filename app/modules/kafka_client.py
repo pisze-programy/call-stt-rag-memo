@@ -18,5 +18,5 @@ def get_consumer(topic, group_id):
         bootstrap_servers=os.getenv("KAFKA_BROKER"),
         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
         auto_offset_reset='earliest',
-        enable_auto_commit=True
+        enable_auto_commit=False
     )

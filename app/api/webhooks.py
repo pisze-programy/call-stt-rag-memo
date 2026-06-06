@@ -1,7 +1,6 @@
 from fastapi import Query, Request, Response, APIRouter
 
 from app.modules.kafka_client import get_producer
-from app.modules.logger import logger
 
 router = APIRouter()
 
@@ -19,8 +18,6 @@ async def handle_zadarma_webhook(request: Request):
     form_data = await request.form()
     payload = {key: value for key, value in form_data.items()}
 
-    logger.info(f"ZADARMA RAW PAYLOAD: {payload}")
-
     event_type = payload.get("event")
 
     topic_map = {
@@ -31,7 +28,8 @@ async def handle_zadarma_webhook(request: Request):
     }
 
     topic = topic_map.get(event_type)
-    if topic:
+
+    if topic and event_type:
         get_producer().send(topic, value=payload)
 
     return Response(content="OK", media_type="text/plain")
