@@ -9,9 +9,6 @@ from app.database.mongodb import db
 
 load_dotenv()
 
-app = FastAPI()
-app.include_router(webhook_router)
-
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await db.connect(os.getenv("MONGO_URI"), "memo_store")
@@ -19,3 +16,4 @@ async def lifespan(_: FastAPI):
     await db.close()
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(webhook_router)
