@@ -4,7 +4,8 @@ from app.modules.logger import logger
 
 def run_call_end_worker():
     consumer = get_consumer(
-        "zadarma_end"
+        "zadarma_end",
+        "call_end_processing_group"
     )
 
     for message in consumer:

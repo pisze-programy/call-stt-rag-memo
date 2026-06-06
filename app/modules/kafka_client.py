@@ -11,9 +11,10 @@ def get_producer():
         value_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
 
-def get_consumer(topic):
+def get_consumer(topic, group_id):
     return KafkaConsumer(
         topic,
+        group_id=group_id,
         bootstrap_servers=os.getenv("KAFKA_BROKER"),
         value_deserializer=lambda x: json.loads(x.decode('utf-8')),
         auto_offset_reset='earliest',

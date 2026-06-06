@@ -5,12 +5,12 @@ services:
     env_file: .env
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:80/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
       interval: 5s
       timeout: 3s
       retries: 3
     ports:
-      - "80:8000"
+      - "8000:8000"
     depends_on:
       kafka:
         condition: service_healthy

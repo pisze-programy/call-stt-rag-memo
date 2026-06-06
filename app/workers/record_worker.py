@@ -25,9 +25,10 @@ def process_event(payload):
     else:
         logger.error(f"ABORTED | No download link available for call: {call_id_with_rec}")
 
-def run_record_worker():
+def run_call_record_worker():
     consumer = get_consumer(
-        "zadarma_record"
+        "zadarma_record",
+        "recording_processing_group"
     )
 
     for message in consumer:
@@ -35,4 +36,4 @@ def run_record_worker():
 
 
 if __name__ == "__main__":
-    run_record_worker()
+    run_call_record_worker()

@@ -4,7 +4,8 @@ from app.modules.logger import logger
 
 def run_call_start_worker():
     consumer = get_consumer(
-        "zadarma_start"
+        "zadarma_start",
+        "call_start_processing_group"
     )
     for message in consumer:
         payload = message.value

@@ -18,6 +18,7 @@ jobs:
             cd /home/ubuntu/nodes/call-stt-rag-memo
             git fetch --all
             git reset --hard origin/main
-            docker compose down --remove-orphans
+            docker compose down
+            sleep 5
             docker compose build --no-cache
             docker compose up -d
