@@ -12,15 +12,17 @@ services:
     ports:
       - "80:8000"
     depends_on:
-      - kafka
-      - mongodb
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
 
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
     healthcheck:
       test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
-      interval: 5s
+      interval: 10s
       timeout: 5s
       retries: 5
     ports:
@@ -50,38 +52,42 @@ services:
     build: .
     command: python -m app.workers.call_start_worker
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     env_file: .env
     environment:
       - KAFKA_BROKER=kafka:29092
-    restart: always
+    restart: on-failure
 
   worker-end:
     build: .
     command: python -m app.workers.call_end_worker
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     env_file: .env
     environment:
       - KAFKA_BROKER=kafka:29092
-    restart: always
+    restart: on-failure
 
   worker-record:
     build: .
     command: python -m app.workers.record_worker
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     env_file: .env
     environment:
       - KAFKA_BROKER=kafka:29092
-    restart: always
+    restart: on-failure
 
   worker-sms:
     build: .
     command: python -m app.workers.sms_worker
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     env_file: .env
     environment:
       - KAFKA_BROKER=kafka:29092
-    restart: always
+    restart: on-failure
