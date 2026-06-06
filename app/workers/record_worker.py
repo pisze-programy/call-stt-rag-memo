@@ -25,9 +25,7 @@ def process_event(payload):
     else:
         logger.error(f"ABORTED | No download link available for call: {call_id_with_rec}")
 
-async def run_record_worker(pbx_id, data):
-    logger.info(f"record_worker {pbx_id} {data}")
-
+async def run_record_worker():
     consumer = get_consumer(
         "zadarma_record"
     )
