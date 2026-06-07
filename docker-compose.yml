@@ -22,6 +22,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
+    restart: on-failure
     healthcheck:
       test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
       interval: 10s
@@ -47,6 +48,7 @@ services:
   mongodb:
     image: mongo:latest
     container_name: mongodb
+    restart: on-failure
     ports:
       - "27017:27017"
     volumes:
