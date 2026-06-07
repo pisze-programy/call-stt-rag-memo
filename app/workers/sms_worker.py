@@ -6,7 +6,7 @@ load_dotenv()
 
 from app.modules.logger import logger
 
-from app.workers.kafka_worker import KafkaWorker
+from app.workers.kafka_worker import run_worker
 
 
 async def handle_sms(payload: dict):
@@ -23,4 +23,4 @@ async def handle_sms(payload: dict):
 
 
 if __name__ == "__main__":
-    asyncio.run(KafkaWorker.run_worker("zadarma_sms", "sms_processing_group", handle_sms))
+    asyncio.run(run_worker("zadarma_sms", "sms_processing_group", handle_sms))

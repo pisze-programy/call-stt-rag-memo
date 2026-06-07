@@ -45,11 +45,12 @@ class KafkaWorker:
     async def stop(self):
         self._running = False
 
-    async def run_worker(topic: str, group_id: str, handler: Callable):
-        await db.connect(os.getenv("MONGO_URI"), "memo_store")
-        consumer = KafkaManager.get_consumer(topic, group_id)
-        worker = KafkaWorker(consumer, handler)
-        try:
-            await worker.start()
-        finally:
-            await db.close()
+
+async def run_worker(topic: str, group_id: str, handler: Callable):
+    await db.connect(os.getenv("MONGO_URI"), "memo_store")
+    consumer = KafkaManager.get_consumer(topic, group_id)
+    worker = KafkaWorker(consumer, handler)
+    try:
+        await worker.start()
+    finally:
+        await db.close()
