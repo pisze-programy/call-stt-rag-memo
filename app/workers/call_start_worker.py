@@ -1,12 +1,15 @@
 import asyncio
 import os
 
+from dotenv import load_dotenv
+
 from app.database.call_operations import initialize_call
 from app.database.mongodb import db
 from app.modules.kafka_client import KafkaManager
 from app.modules.logger import logger
 from app.workers.kafka_worker import KafkaWorker
 
+load_dotenv()
 
 async def handle_call_start(payload):
     logger.info(f"Received message: {payload}")

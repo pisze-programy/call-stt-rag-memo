@@ -1,11 +1,14 @@
 import asyncio
 import os
 
+from dotenv import load_dotenv
+
 from app.database.mongodb import db
 from app.modules.kafka_client import KafkaManager
 from app.modules.logger import logger
 from app.workers.kafka_worker import KafkaWorker
 
+load_dotenv()
 
 def handle_sms(payload: dict):
     logger.info(f"Received message: {payload}")

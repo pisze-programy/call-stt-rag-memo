@@ -1,6 +1,8 @@
 import asyncio
 import os
 
+from dotenv import load_dotenv
+
 from app.database.call_operations import update_call_recording_link, update_call_transcription
 from app.database.mongodb import db
 from app.modules.kafka_client import KafkaManager
@@ -8,6 +10,8 @@ from app.modules.logger import logger
 from app.modules.stt_manager import process_recording_to_text, save_stt_to_vector_db, save_file_locally
 from app.modules.zadarma_manager import fetch_call_recording_data
 from app.workers.kafka_worker import KafkaWorker
+
+load_dotenv()
 
 
 async def handle_call_record(payload):
