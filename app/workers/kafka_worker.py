@@ -1,7 +1,11 @@
 import logging
+import os
 from collections.abc import Awaitable, Callable
 
 from aiokafka import AIOKafkaConsumer
+
+from app.database.mongodb import db
+from app.modules.kafka_client import KafkaManager
 
 logger = logging.getLogger(__name__)
 
@@ -40,3 +44,12 @@ class KafkaWorker:
 
     async def stop(self):
         self._running = False
+
+    async def run_worker(topic: str, group_id: str, handler: Callable):
+        await db.connect(os.getenv("MONGO_URI"), "memo_store")
+        consumer = KafkaManager.get_consumer(topic, group_id)
+        worker = KafkaWorker(consumer, handler)
+        try:
+            await worker.start()
+        finally:
+            await db.close()

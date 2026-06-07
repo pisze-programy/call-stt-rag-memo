@@ -1,16 +1,16 @@
 import asyncio
-import os
 
 from dotenv import load_dotenv
 
-from app.database.mongodb import db
-from app.modules.kafka_client import KafkaManager
-from app.modules.logger import logger
-from app.workers.kafka_worker import KafkaWorker
-
 load_dotenv()
 
-def handle_sms(payload: dict):
+from app.modules.logger import logger
+
+from app.workers.kafka_worker import KafkaWorker
+
+
+async def handle_sms(payload: dict):
+    await asyncio.sleep(0)
     logger.info(f"Received message: {payload}")
     # TODO: upgrade zadarma subscription to get sms available
     # payload = {"event": event, "from": from_number, "message_text": message_text}
@@ -22,14 +22,5 @@ def handle_sms(payload: dict):
     #     logger.info(f"ZADARMA call_id_with_rec: {call_id_with_rec}")
 
 
-async def main():
-    await db.connect(os.getenv("MONGO_URI"), "memo_store")
-    consumer = KafkaManager.get_consumer("zadarma_sms", "sms_processing_group")
-    worker = KafkaWorker(consumer, handle_sms)
-    try:
-        await worker.start()
-    finally:
-        await db.close()
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(KafkaWorker.run_worker("zadarma_sms", "sms_processing_group", handle_sms))
