@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from dotenv import load_dotenv
 
@@ -16,12 +17,15 @@ async def handle_call_record(payload):
     pbx_call_id = payload.get("pbx_call_id")
     caller_phone = payload.get("caller_id")
 
-    local_path = f"/app/data/recordings/{pbx_call_id}.wav"
-
     data = await fetch_call_recording_data(call_id_with_rec)
     if not data or "link" not in data:
         logger.error(f"ABORTED | No download link for: {call_id_with_rec}")
         return
+
+    ext = os.path.splitext(data["link"])[1]
+    if not ext or ext not in ['.mp3', '.wav', '.ogg', '.m4a']:
+        ext = ".mp3"
+    local_path = f"/app/data/recordings/{pbx_call_id}{ext}"
 
     await save_file_locally(data["link"], local_path)
     await update_call_recording_link(pbx_call_id, local_path)

@@ -9,25 +9,17 @@ from openai import AsyncOpenAI
 from app.modules.logger import logger
 
 
-async def process_recording_to_text(download_url: str, call_id_with_rec: str) -> str:
+async def process_recording_to_text(local_path: str, call_id_with_rec: str) -> str:
     openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     async with httpx.AsyncClient() as http_client:
         try:
-            response = await http_client.get(download_url)
-            if response.status_code != 200:
-                logger.error(f"DOWNLOAD FAILED: {response.status_code}")
-                return ""
-
-            audio_bytes = response.content
-            audio_file = io.BytesIO(audio_bytes)
-            audio_file.name = f"{call_id_with_rec}.mp3"
-
-            transcription = await openai_client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file,
-                language="pl"
-            )
+            with open(local_path, "rb") as audio_file:
+                transcription = await openai_client.audio.transcriptions.create(
+                    model="whisper-1",
+                    file=audio_file,
+                    language="pl"
+                )
 
             logger.info(f"STT SUCCESS | TEXT: {transcription.text}")
             return transcription.text

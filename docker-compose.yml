@@ -56,8 +56,8 @@ services:
     networks:
       - app-net
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
-      interval: 5s
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
       timeout: 5s
       retries: 5
 
