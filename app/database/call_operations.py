@@ -2,8 +2,8 @@ from app.database.mongodb import db
 from app.models.call import CallStatus
 
 
-def initialize_call(pbx_call_id: str, caller_id: str, called_did: str, call_start: str):
-    db.calls.update_one(
+async def initialize_call(pbx_call_id: str, caller_id: str, called_did: str, call_start: str):
+    await db.calls.update_one(
         {"pbx_call_id": pbx_call_id},
         {
             "$set": {
@@ -16,8 +16,8 @@ def initialize_call(pbx_call_id: str, caller_id: str, called_did: str, call_star
         upsert=True
     )
 
-def finalize_call(pbx_call_id: str, duration: int, is_recorded: bool):
-    db.calls.update_one(
+async def finalize_call(pbx_call_id: str, duration: int, is_recorded: bool):
+    await db.calls.update_one(
         {"pbx_call_id": pbx_call_id},
         {
             "$set": {
@@ -28,8 +28,8 @@ def finalize_call(pbx_call_id: str, duration: int, is_recorded: bool):
         }
     )
 
-def update_call_recording_link(pbx_call_id: str, audio_path: str):
-    db.calls.update_one(
+async def update_call_recording_link(pbx_call_id: str, audio_path: str):
+    await db.calls.update_one(
         {"pbx_call_id": pbx_call_id},
         {
             "$set": {
@@ -38,8 +38,8 @@ def update_call_recording_link(pbx_call_id: str, audio_path: str):
         }
     )
 
-def update_call_transcription(pbx_call_id: str, note: str):
-    db.calls.update_one(
+async def update_call_transcription(pbx_call_id: str, note: str):
+    await db.calls.update_one(
         {"pbx_call_id": pbx_call_id},
         {"$set": {"notes": note}}
     )
