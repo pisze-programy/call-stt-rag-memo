@@ -13,8 +13,4 @@ class Database:
         if self.client:
             self.client.close()
 
-    @property
-    def calls(self):
-        return self.db["calls"]
-
 db = Database()
