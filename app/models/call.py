@@ -1,8 +1,10 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel
+
+from app.models.Interpretation import Interpretation
 
 
 class CallStatus(str, Enum):
@@ -17,5 +19,8 @@ class CallSession(BaseModel):
     duration: Optional[int] = None
     status: CallStatus = CallStatus.INIT
     is_recorded: bool = False
-    notes: Optional[str] = None
     audio_path: Optional[str] = None
+    transcription: Optional[str] = None
+    interpretation: Optional[Interpretation] = None
+    embedding: Optional[List[float]] = None
+    updated_at: Optional[datetime] = None

@@ -1,4 +1,7 @@
+from datetime import datetime
+
 from app.database.mongodb import db
+from app.models.Interpretation import Interpretation
 from app.models.call import CallStatus
 
 
@@ -23,7 +26,8 @@ async def finalize_call(pbx_call_id: str, duration: int, is_recorded: bool):
             "$set": {
                 "duration": duration,
                 "is_recorded": is_recorded,
-                "status": CallStatus.END
+                "status": CallStatus.END,
+                "updated_at": datetime.now()
             }
         }
     )
@@ -33,13 +37,19 @@ async def update_call_recording_link(pbx_call_id: str, audio_path: str):
         {"pbx_call_id": pbx_call_id},
         {
             "$set": {
-                "audio_path": audio_path
+                "audio_path": audio_path,
+                "updated_at": datetime.now()
             }
         }
     )
 
-async def update_call_transcription(pbx_call_id: str, note: str):
+async def update_call_transcription(pbx_call_id: str, transcription: str, interpretation: Interpretation):
     await db.calls.update_one(
         {"pbx_call_id": pbx_call_id},
-        {"$set": {"notes": note}}
+        {
+            "$set": {
+                "transcription": transcription,
+                "updated_at": datetime.now(),
+                "interpretation": interpretation.model_dump()
+            }}
     )
