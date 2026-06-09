@@ -159,6 +159,34 @@ async def interpret_transcription(transcription: str) -> Interpretation:
         json.loads(response.choices[0].message.content)
     )
 
+
+async def interpret_search_query(user_query: str, context: str) -> str:
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            ChatCompletionSystemMessageParam(
+                role="system",
+                content=""
+                    "You are a personal memory assistant. Answer the user's question based strictly on the provided notes. "
+                    "The response must be short, direct, and conversational. "
+                    "Always end with one short, natural follow-up question (hook) related to the topic to keep the conversation going. "
+                    "If the answer is not in the notes, state that clearly. "
+                    "Respond in the same language as the user's question."
+                "",
+            ),
+            ChatCompletionUserMessageParam(
+                role="user",
+                content=""
+                    f"User question: {user_query}\n\n"
+                    f"Notes context: {context}\n\n"
+                    "Answer:"
+                ""
+            )
+        ]
+    )
+
+    return response.choices[0].message.content
+
 async def embed_text(text: str) -> list[float]:
     response = await openai_client.embeddings.create(
         model="text-embedding-3-small",
