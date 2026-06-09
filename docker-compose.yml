@@ -18,6 +18,14 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
+      wait-for-qdrant:
+        condition: service_completed_successfully
+
+  wait-for-qdrant:
+      image: jwilder/dockerize
+      networks:
+        - app-net
+      command: -wait tcp://qdrant:6333 -timeout 30s -wait-retry-interval 2s && sleep 2
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -55,11 +63,6 @@ services:
       - ./qdrant_data:/qdrant/storage
     networks:
       - app-net
-    healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:6333/healthz" ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   mongodb:
     image: mongo:7
@@ -113,8 +116,8 @@ services:
         condition: service_healthy
       mongodb:
         condition: service_healthy
-      qdrant:
-        condition: service_healthy
+      wait-for-qdrant:
+        condition: service_completed_successfully
     env_file: .env
     restart: on-failure
     volumes:
