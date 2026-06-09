@@ -53,3 +53,6 @@ async def update_call_transcription(pbx_call_id: str, transcription: str, interp
                 "interpretation": interpretation.model_dump()
             }}
     )
+
+async def get_call_by_pbx_id(pbx_call_id: str):
+    return await db.calls.find_one({"pbx_call_id": pbx_call_id})

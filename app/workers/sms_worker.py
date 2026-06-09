@@ -17,7 +17,7 @@ async def handle_sms(payload: dict):
     # text = process_recording_to_text(data["link"], call_id_with_rec))
     #
     # if text:
-    #     save_stt_to_vector_db(caller_phone, text)
+    #     save_stt_to_vector_db(caller_id, text)
     #     logger.info(f"ZADARMA pbx_call_id: {pbx_call_id}")
     #     logger.info(f"ZADARMA call_id_with_rec: {call_id_with_rec}")
 

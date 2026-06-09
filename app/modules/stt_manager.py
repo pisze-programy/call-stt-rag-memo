@@ -30,7 +30,7 @@ async def process_recording_to_text(local_path: str,) -> str:
         return ""
 
 async def save_stt_to_vector_db(
-    caller_phone: str,
+    caller_id: str,
     pbx_call_id: str,
     text: str,
     embedding: list[float],
@@ -44,7 +44,7 @@ async def save_stt_to_vector_db(
                 "id": point_id,
                 "vector": embedding,
                 "payload": {
-                    "caller_phone": caller_phone,
+                    "caller_id": caller_id,
                     "pbx_call_id": pbx_call_id,
                     "text": text,
                     "summary": interpretation.summary,

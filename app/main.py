@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
 
+from app.api.search_notes import router as search_router
 from app.api.health import router as health_router
 from app.api.webhooks import router as webhook_router
 from app.database.mongodb import db
@@ -21,3 +22,4 @@ async def lifespan(_: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.include_router(webhook_router)
 app.include_router(health_router)
+app.include_router(search_router)
