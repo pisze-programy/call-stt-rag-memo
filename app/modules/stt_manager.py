@@ -167,18 +167,23 @@ async def interpret_search_query(user_query: str, context: str) -> str:
             ChatCompletionSystemMessageParam(
                 role="system",
                 content=""
-                    "You are a personal memory assistant. Answer the user's question based strictly on the provided notes. "
-                    "The response must be short, direct, and conversational. "
-                    "Always end with one short, natural follow-up question (hook) related to the topic to keep the conversation going. "
-                    "If the answer is not in the notes, state that clearly. "
-                    "Respond in the same language as the user's question."
+                    "You are a memory assistant. You are analyzing one or more notes about the user's life. "
+                    "The provided context might contain multiple notes about the same topic or activity. "
+                    "If these notes mention conflicting facts, figures, or details, prioritize the information "
+                    "that is more specific, detailed, or implies a more recent state. "
+                    "Do not treat all notes as equal facts if they contradict each other; instead, "
+                    "treat them as a timeline where later or more precise data supersedes older, less accurate entries. "
+                    "Synthesize the findings to present the most current and accurate status. "
+                    "If the information is contradictory and a clear current state cannot be determined, "
+                    "state the ambiguity clearly. "
+                    "Respond in the language of the user's question."
                 "",
             ),
             ChatCompletionUserMessageParam(
                 role="user",
                 content=""
                     f"User question: {user_query}\n\n"
-                    f"Notes context: {context}\n\n"
+                    f"Notes context (ordered from oldest to newest): {context}\n\n"
                     "Answer:"
                 ""
             )
