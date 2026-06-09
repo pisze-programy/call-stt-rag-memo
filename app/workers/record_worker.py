@@ -64,5 +64,5 @@ async def handle_call_record(payload):
         )
 
 if __name__ == "__main__":
-    asyncio.run(init_qdrant())
+    init_qdrant()
     asyncio.run(run_worker("zadarma_record", "recording_processing_group", handle_call_record))

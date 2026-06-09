@@ -1,5 +1,6 @@
 import json
 import os
+import uuid
 
 import aiofiles
 import aiohttp
@@ -35,14 +36,16 @@ async def save_stt_to_vector_db(
     embedding: list[float],
     interpretation: Interpretation
 ):
+    point_id = str(uuid.uuid4())
     qdrant.upsert(
         collection_name=os.getenv("QDRANT_COLLECTION"),
         points=[
             {
-                "id": pbx_call_id,
+                "id": point_id,
                 "vector": embedding,
                 "payload": {
                     "caller_phone": caller_phone,
+                    "pbx_call_id": pbx_call_id,
                     "text": text,
                     "summary": interpretation.summary,
                     "note_type": interpretation.note_type,

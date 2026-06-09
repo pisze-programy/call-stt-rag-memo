@@ -27,6 +27,15 @@ services:
         - app-net
       command: -wait tcp://qdrant:6333 -timeout 30s -wait-retry-interval 2s && sleep 2
 
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    ports:
+      - "9000:9000"
+    environment:
+      KAFKA_BROKERCONNECT: "kafka:9092"
+    networks:
+      - app-net
+
   kafka:
     image: confluentinc/cp-kafka:latest
     container_name: kafka
