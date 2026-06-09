@@ -28,7 +28,9 @@ async def search_notes(request: SearchRequest):
         with_vectors=False,
     )
 
-    context = "\n\n--- NOTE START ---\n".join([hit.payload.get("text", "") for hit in results.points])
+    sorted_points = sorted(results.points, key=lambda x: x.payload.get("created_at", 0))
+    context_list = [f"--- NOTE START ---\n{hit.payload.get('text', '')}" for hit in sorted_points]
+    context = "\n\n".join(context_list)
     answer = await interpret_search_query(request.query, context)
 
     return {"answer": answer, "context": context}

@@ -176,6 +176,7 @@ async def interpret_search_query(user_query: str, context: str) -> str:
                     "Synthesize the findings to present the most current and accurate status. "
                     "If the information is contradictory and a clear current state cannot be determined, "
                     "state the ambiguity clearly. "
+                    "Always end your response with one short, natural follow-up question (hook) related to the topic. "
                     "Respond in the language of the user's question."
                 "",
             ),
@@ -183,7 +184,7 @@ async def interpret_search_query(user_query: str, context: str) -> str:
                 role="user",
                 content=""
                     f"User question: {user_query}\n\n"
-                    f"Notes context (ordered from oldest to newest): {context}\n\n"
+                    f"Notes context (ordered from newest to oldest): {context}\n\n"
                     "Answer:"
                 ""
             )
