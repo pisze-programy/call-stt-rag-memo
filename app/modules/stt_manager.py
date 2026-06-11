@@ -174,8 +174,8 @@ async def interpret_search_query(user_query: str, context: str) -> str:
                     "Do not treat all notes as equal facts if they contradict each other; instead, "
                     "treat them as a timeline where later or more precise data supersedes older, less accurate entries. "
                     "Synthesize the findings to present the most current and accurate status. "
-                    "If the information is contradictory and a clear current state cannot be determined, "
-                    "state the ambiguity clearly. "
+                    "If notes contain conflicting information, explicitly highlight the ambiguity."
+                    "Do not infer or estimate values; if a value is not explicitly stated, report it as missing."
                     "Always end your response with one short, natural follow-up question (hook) related to the topic. "
                     "Respond in the language of the user's question."
                 "",
