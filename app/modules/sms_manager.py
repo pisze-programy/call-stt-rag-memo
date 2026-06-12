@@ -2,7 +2,6 @@ import os
 
 from openai import AsyncOpenAI
 
-from app.models.Interpretation import Interpretation
 from app.models.action import ActionInterpretation
 
 openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -29,4 +28,4 @@ async def classify_sms_intent(text: str) -> ActionInterpretation:
         ]
     )
 
-    return Interpretation.model_validate_json(response.choices[0].message.content)
+    return ActionInterpretation.model_validate_json(response.choices[0].message.content)
