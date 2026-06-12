@@ -145,6 +145,17 @@ services:
     env_file: .env
     restart: on-failure
 
+  worker-mail:
+    build: .
+    command: python -m app.workers.mail_worker
+    networks:
+      - app-net
+    depends_on:
+      kafka:
+        condition: service_healthy
+    env_file: .env
+    restart: on-failure
+
 networks:
   app-net:
     driver: bridge

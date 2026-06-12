@@ -69,6 +69,9 @@ async def handle_call_record(payload):
             interpretation
         )
 
+        # kafka send_event email with save confirmation
+
+
 if __name__ == "__main__":
     init_qdrant()
     asyncio.run(run_worker("zadarma_record", "recording_processing_group", handle_call_record))

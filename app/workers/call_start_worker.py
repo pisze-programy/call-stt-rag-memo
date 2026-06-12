@@ -2,6 +2,8 @@ import asyncio
 
 from dotenv import load_dotenv
 
+from app.database.caller_operations import upsert_caller
+
 load_dotenv()
 
 from app.database.call_operations import initialize_call
@@ -18,6 +20,7 @@ async def handle_call_start(payload):
     call_start = payload.get("call_start")
 
     await initialize_call(pbx_call_id, caller_id, called_did, call_start)
+    await upsert_caller(caller_id)
 
 
 if __name__ == "__main__":

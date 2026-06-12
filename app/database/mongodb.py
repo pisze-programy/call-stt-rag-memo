@@ -17,4 +17,8 @@ class Database:
     def calls(self):
         return self.db["calls"]
 
+    @property
+    def callers(self):
+        return self.db["callers"]
+
 db = Database()
