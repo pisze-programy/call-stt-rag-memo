@@ -3,7 +3,6 @@ import json
 
 from dotenv import load_dotenv
 
-from app.modules.kafka_client import send_event
 from app.modules.sms_manager import classify_sms_intent
 
 load_dotenv()
@@ -16,31 +15,33 @@ from app.workers.kafka_worker import run_worker
 async def handle_sms(payload: dict):
     await asyncio.sleep(0)
     logger.info(f"Received message: {payload}")
-    # worker - sms - 1 | 2026 - 06 - 12
-    # 12: 01:49, 414[INFO]
-    # app: Received
-    # message: {'event': 'SMS', 'result': '{"caller_did":"48573504251","caller_id":"48519661980","text":"Test"}'}
-
     result = json.loads(payload.get('result', '{}'))
     text = result.get('text', '')
     caller_id = result.get('caller_id')
 
     if (caller_id is None) or (text is None):
         logger.info(f"SMS ignored or invalid: {text}")
-        return
+        return None
 
-    schema = await classify_sms_intent(text)
+    if not text or not text.strip():
+        return {"intent": "REJECT", "email": None, "note_content": None, "query": None}
 
-    logger.info(f"classify response: {text} {caller_id} {schema}")
+    try:
+        result = await classify_sms_intent(text)
+        intent = result.intent
 
-    if schema.intent == 'SAVE_NOTE':
-        return
-    elif schema.intent == 'BIND_EMAIL':
-        return
-    elif schema.intent == 'QUERY_NOTES':
-        return
-    else:
-        logger.info(f"SMS ignored or invalid: {text}")
+        logger.info(f"classify response: {text} {caller_id} {result}")
+
+        if intent == 'SAVE_NOTE':
+            return None
+        elif intent == 'BIND_EMAIL':
+            return None
+        elif intent == 'QUERY_NOTES':
+            return None
+        else:
+            logger.info(f"SMS ignored or invalid: {text}")
+    except (json.JSONDecodeError, KeyError, AssertionError) as e:
+        logger.error(f"Invalid LLM response: {text}, error: {e}")
 
 
 if __name__ == "__main__":

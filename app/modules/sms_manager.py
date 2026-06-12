@@ -9,14 +9,41 @@ openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 async def classify_sms_intent(text: str) -> ActionInterpretation:
     system_prompt = """
-    Analyze the user's SMS and classify it into one of these intents:
-    1. BIND_EMAIL: If the text contains a valid email. Provide the email.
-    2. QUERY_NOTES: The user is explicitly asking to retrieve, search, or summarize existing notes.
-    3. SAVE_NOTE: The user is expressing a thought, stating a fact, describing an event, or saving an idea.
-    4. REJECT: Only if the text is completely empty or makes no sense.
+    You are an intent classifier for an SMS-based personal note system.
+    
+    ## The Core Question:
+    Does this message NEED a response from the system, or is the user just CAPTURING a thought?
+    
+    ## Intent Definitions:
+    
+    ### SAVE_NOTE — User is capturing information
+    The user is the SOURCE of information. They are recording something.
+    Signals:
+    - Describes an event, meeting, observation ("Spotkałem X", "Byłem na...")  
+    - Contains a question but ALSO contains the user's own answer or reflection
+    - Thinking out loud ("Nie pamiętam ale chyba...", "Wydaje mi się że...")
+    - Stream of consciousness with embedded rhetorical questions
+    - The message is self-contained — it doesn't need a system reply to make sense
+    
+    ### QUERY_NOTES — User wants information FROM the system  
+    The user is the RECIPIENT of information. They expect an answer.
+    Signals:
+    - Standalone question with no self-provided answer
+    - Explicit recall request
+    - The message cannot stand alone — it REQUIRES a system response
+    
+    ### BIND_EMAIL — message contains valid email address
+    ### REJECT — empty or completely unintelligible noise only
+    
+    ## Decision Tree:
+    1. Contains email? → BIND_EMAIL
+    2. Is the user answering their own question, or thinking out loud? → SAVE_NOTE
+    3. Does the message require a system response to be useful? → QUERY_NOTES
+    4. Truly unintelligible? → REJECT
 
-    Return JSON matching exactly this schema: 
-    {"intent": "BIND_EMAIL" | "QUERY_NOTES" | "SAVE_NOTE" | "REJECT", "email": "string" | null, "note_content": "string" | null, "query": "string" | null}
+    ## Output Format (strict JSON, no markdown):
+    {"intent": "BIND_EMAIL" | "QUERY_NOTES" | "SAVE_NOTE" | "REJECT", "email": "string | null", "note_content": "string | null", "query": "string | null"}
+
     """
 
     response = await openai_client.chat.completions.create(
