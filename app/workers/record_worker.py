@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 
 from app.database.qdrant import init_qdrant
 from app.models.Interpretation import Interpretation
-from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db, normalize_phone_smart
+from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db, normalize_phone_smart, \
+    notify_user
 
 load_dotenv()
 
@@ -52,14 +53,14 @@ async def handle_call_record(payload):
             interpretation = await interpret_input(text)
         except Exception as e:
             logger.error(f"Note Interpretation error: {str(e)}")
+
         await update_call_transcription(pbx_call_id, text, interpretation)
         embedding = await embed_text(text)
         call_info = await get_call_by_pbx_id(pbx_call_id)
         caller_id = call_info.get("caller_id") if call_info else None
         phone = normalize_phone_smart(caller_id)
 
-        if not phone:
-            # TODO: Email notification
+        if phone is None:
             print(f"No phone number, pbx_call_id: {pbx_call_id}")
             return
 
@@ -69,8 +70,9 @@ async def handle_call_record(payload):
             embedding,
             interpretation
         )
-
-        # TODO: Email notification with success
+        await notify_user(phone, "Call Processed", f"Your call has been transcribed and saved. {text}")
+    else:
+        logger.info(f"No text for {pbx_call_id}")
 
 
 if __name__ == "__main__":

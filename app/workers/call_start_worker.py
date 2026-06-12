@@ -22,7 +22,6 @@ async def handle_call_start(payload):
     phone = normalize_phone_smart(caller_id)
 
     if phone is None:
-        # TODO: Email notification
         return
 
     await initialize_call(pbx_call_id, phone, called_did, call_start)

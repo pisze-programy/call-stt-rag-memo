@@ -22,7 +22,7 @@ async def process_recording_to_text(local_path: str,) -> str:
 
     except Exception as e:
         logger.error(f"STT PROCESSING ERROR: {str(e)}")
-        return ""
+        return None
 
 
 async def save_file_locally(url: str, local_path: str):

@@ -9,6 +9,7 @@ from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUs
 
 from app.database.qdrant import qdrant
 from app.models.Interpretation import Interpretation
+from app.modules.kafka_client import send_event
 
 openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -31,7 +32,7 @@ async def save_to_vector_db(
                     "summary": interpretation.summary,
                     "note_type": interpretation.note_type,
                     "people": interpretation.people,
-                    "created_at": datetime.now(),
+                    "created_at": datetime.now().isoformat(),
                 }
             }
         ]
@@ -199,3 +200,10 @@ def normalize_phone_smart(phone_number: str | None) -> str | None:
         return None
 
     return phone_number
+
+async def notify_user(phone: str, subject: str, body: str):
+    await send_event("mail", {
+        "caller_id": phone,
+        "subject": subject,
+        "body": body
+    })
