@@ -1,6 +1,5 @@
 import asyncio
 import json
-from logging import Logger
 
 from dotenv import load_dotenv
 from qdrant_client.models import Filter, FieldCondition, MatchValue
@@ -76,7 +75,7 @@ async def handle_sms(payload: dict):
             context_list = [f"--- NOTE START ---\n{hit.payload.get('text', '')}" for hit in sorted_points]
             context = "\n\n".join(context_list)
             answer = await interpret_search_query(text, context)
-            Logger.info(f"Query result: {answer}")
+            logger.info(f"Query result: {answer}")
             return None
         else:
             logger.info(f"SMS ignored or invalid: {text}")
