@@ -5,13 +5,13 @@ from dotenv import load_dotenv
 
 from app.database.qdrant import init_qdrant
 from app.models.Interpretation import Interpretation
+from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db
 
 load_dotenv()
 
 from app.database.call_operations import update_call_recording_link, update_call_transcription, get_call_by_pbx_id
 from app.modules.logger import logger
-from app.modules.stt_manager import process_recording_to_text, save_stt_to_vector_db, save_file_locally, embed_text, \
-    interpret_transcription
+from app.modules.stt_manager import process_recording_to_text, save_file_locally
 from app.modules.zadarma_manager import fetch_call_recording_data
 from app.workers.kafka_worker import run_worker
 
@@ -49,7 +49,7 @@ async def handle_call_record(payload):
         )
 
         try:
-            interpretation = await interpret_transcription(text)
+            interpretation = await interpret_input(text)
         except Exception as e:
             logger.error(f"Note Interpretation error: {str(e)}")
         await update_call_transcription(pbx_call_id, text, interpretation)
@@ -61,15 +61,14 @@ async def handle_call_record(payload):
             print(f"No phone number, pbx_call_id: {pbx_call_id}")
             return
 
-        await save_stt_to_vector_db(
+        await save_to_vector_db(
             caller_id,
-            pbx_call_id,
             text,
             embedding,
             interpretation
         )
 
-        # kafka send_event email with save confirmation
+        # TODO: kafka send_event email with save confirmation
 
 
 if __name__ == "__main__":

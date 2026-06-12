@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.database.qdrant import qdrant, COLLECTION_NAME
-from app.modules.stt_manager import embed_text, interpret_search_query
+from app.modules.memory_manager import embed_text, interpret_search_query
 
 router = APIRouter()
 

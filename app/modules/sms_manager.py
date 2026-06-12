@@ -42,7 +42,7 @@ async def classify_sms_intent(text: str) -> ActionInterpretation:
     4. Truly unintelligible? → REJECT
 
     ## Output Format (strict JSON, no markdown):
-    {"intent": "BIND_EMAIL" | "QUERY_NOTES" | "SAVE_NOTE" | "REJECT", "email": "string | null", "note_content": "string | null", "query": "string | null"}
+    {"intent": "BIND_EMAIL" | "QUERY_NOTES" | "SAVE_NOTE" | "REJECT", "email": "string | null"}
 
     """
 
