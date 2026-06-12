@@ -3,6 +3,7 @@ import asyncio
 from dotenv import load_dotenv
 
 from app.database.caller_operations import upsert_caller
+from app.modules.memory_manager import normalize_phone_smart
 
 load_dotenv()
 
@@ -18,9 +19,14 @@ async def handle_call_start(payload):
     caller_id = payload.get("caller_id")
     called_did = payload.get("called_did")
     call_start = payload.get("call_start")
+    phone = normalize_phone_smart(caller_id)
 
-    await initialize_call(pbx_call_id, caller_id, called_did, call_start)
-    await upsert_caller(caller_id)
+    if phone is None:
+        # TODO: Email notification
+        return
+
+    await initialize_call(pbx_call_id, phone, called_did, call_start)
+    await upsert_caller(phone)
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.database.qdrant import qdrant, COLLECTION_NAME
-from app.modules.memory_manager import embed_text, interpret_search_query
+from app.modules.memory_manager import embed_text, interpret_search_query, normalize_phone_smart
 
 router = APIRouter()
 
@@ -16,12 +16,16 @@ class SearchRequest(BaseModel):
 async def search_notes(request: SearchRequest):
     query_vector = await embed_text(request.query)
     limit = request.limit if request.limit else 5
+    phone = normalize_phone_smart(request.phone)
+
+    if phone is None:
+        return {"answer": None, "context": "Wrong phone number"}
 
     results = qdrant.query_points(
         collection_name=COLLECTION_NAME,
         query=query_vector,
         query_filter=Filter(
-            must=[FieldCondition(key="caller_id", match=MatchValue(value=request.phone))]
+            must=[FieldCondition(key="caller_id", match=MatchValue(value=phone))]
         ),
         limit=limit,
         with_payload=True,

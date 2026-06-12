@@ -3,6 +3,7 @@ import os
 import uuid
 from datetime import datetime
 
+import phonenumbers
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 
@@ -182,3 +183,19 @@ async def embed_text(text: str) -> list[float]:
     )
 
     return response.data[0].embedding
+
+
+def normalize_phone_smart(phone_number: str | None) -> str | None:
+    if phone_number is None:
+        return None
+    if not phone_number.startswith('+'):
+        phone_number = '+' + phone_number.lstrip('+')
+
+    try:
+        number_obj = phonenumbers.parse(phone_number, None)
+        if phonenumbers.is_valid_number(number_obj):
+            return phonenumbers.format_number(number_obj, phonenumbers.PhoneNumberFormat.E164)
+    except Exception:
+        return None
+
+    return phone_number

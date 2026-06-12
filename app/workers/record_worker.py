@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 from app.database.qdrant import init_qdrant
 from app.models.Interpretation import Interpretation
-from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db
+from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db, normalize_phone_smart
 
 load_dotenv()
 
@@ -56,19 +56,21 @@ async def handle_call_record(payload):
         embedding = await embed_text(text)
         call_info = await get_call_by_pbx_id(pbx_call_id)
         caller_id = call_info.get("caller_id") if call_info else None
+        phone = normalize_phone_smart(caller_id)
 
-        if not caller_id:
+        if not phone:
+            # TODO: Email notification
             print(f"No phone number, pbx_call_id: {pbx_call_id}")
             return
 
         await save_to_vector_db(
-            caller_id,
+            phone,
             text,
             embedding,
             interpretation
         )
 
-        # TODO: kafka send_event email with save confirmation
+        # TODO: Email notification with success
 
 
 if __name__ == "__main__":
