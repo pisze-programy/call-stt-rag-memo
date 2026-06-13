@@ -1,6 +1,7 @@
 import os
 
 from openai import AsyncOpenAI
+from openai.types.chat.completion_create_params import ResponseFormat
 
 from app.models.action import ActionInterpretation
 
@@ -48,7 +49,7 @@ async def classify_sms_intent(text: str) -> ActionInterpretation:
 
     response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
-        response_format={"type": "json_object"},
+        response_format=ResponseFormat(type="json_object"),
         messages=[
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": text}

@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 
 class CallerSession(BaseModel):
-    email_address: Optional[str] = None
     caller_id: str
+    email_address: Optional[str] = None
+    calendar_id: Optional[str]
     updated_at: Optional[datetime] = None

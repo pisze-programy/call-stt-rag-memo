@@ -8,3 +8,5 @@ env/
 mongo_data
 
 .DS_Store
+
+secrets

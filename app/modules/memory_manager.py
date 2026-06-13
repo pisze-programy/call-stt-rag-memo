@@ -5,7 +5,9 @@ from datetime import datetime
 
 import phonenumbers
 from openai import AsyncOpenAI
+from openai.types import ResponseFormatJSONObject
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
+from openai.types.chat.completion_create_params import ResponseFormat
 from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.database.qdrant import qdrant, COLLECTION_NAME
@@ -43,7 +45,7 @@ async def save_to_vector_db(
 async def interpret_input(input: str) -> Interpretation:
     response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
-        response_format={"type": "json_object"},
+        response_format=ResponseFormat(type="json_object"),
         messages=[
             ChatCompletionSystemMessageParam(
                 role="system",
@@ -255,3 +257,40 @@ async def perform_vector_search(phone: str, text: str) -> str:
 
     answer = await interpret_search_query(text, context)
     return answer
+
+async def interpret_event_details(text: str) -> dict:
+    current_timestamp = datetime.now().isoformat()
+
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        response_format=ResponseFormat(type="json_object"),
+        messages=[
+            ChatCompletionSystemMessageParam(
+                role="system",
+                content=f"""
+                    Extract Google Calendar event details from the user's notes.
+                    If details are missing, set them to null.
+                
+                    OUTPUT SCHEMA:
+                    {
+                      "summary": "string | null",
+                      "start_time": "YYYY-MM-DDTHH:MM:SSZ | null",
+                      "end_time": "YYYY-MM-DDTHH:MM:SSZ | null",
+                      "description": "string | null"
+                    }
+                
+                    CRITICAL RULES:
+                    - Output MUST be valid JSON only.
+                    - If no date/time is mentioned, set start_time and end_time to null.
+                    - summary must be extracted from the note's topic.
+                    - Use current timestamp: {current_timestamp} for relative references like "tomorrow".
+                """
+            ),
+            ChatCompletionUserMessageParam(
+                role="user",
+                content=text
+            )
+        ]
+    )
+
+    return json.loads(response.choices[0].message.content)

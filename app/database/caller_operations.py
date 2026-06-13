@@ -24,3 +24,10 @@ async def update_email(caller_id: str, email: str) -> bool:
         {"$set": {"email_address": email, "updated_at": datetime.now()}},
     )
     return result.modified_count > 0
+
+async def update_calendar_id(caller_id: str, calendar_id: str) -> bool:
+    result = await db.callers.update_one(
+        {"caller_id": caller_id},
+        {"$set": {"calendar_id": calendar_id, "updated_at": datetime.now()}},
+    )
+    return result.modified_count > 0

@@ -1,9 +1,10 @@
 import asyncio
 import json
+import re
 
 from dotenv import load_dotenv
 
-from app.database.caller_operations import upsert_caller, update_email
+from app.database.caller_operations import upsert_caller, update_email, update_calendar_id
 from app.modules.memory_manager import save_to_vector_db, interpret_input, embed_text, normalize_phone_smart, \
     notify_user, refine_search_query, perform_vector_search
 from app.modules.sms_manager import classify_sms_intent
@@ -63,6 +64,17 @@ async def handle_sms(payload: dict):
 
     if (phone is None) or (text is None):
         logger.info(f"SMS ignored or invalid: {text}")
+        return None
+
+    pattern = r"[a-zA-Z0-9._%+-]+@group\.calendar\.google\.com"
+    match = re.search(pattern, text)
+
+    if match:
+        calendar_id = match.group(0)
+        success = await update_calendar_id(phone, calendar_id)
+        if success:
+            logger.info(f"Calendar ID updated: {calendar_id}")
+            await notify_user(phone, "Calendar Configuration", "Your Calendar ID has been successfully saved.")
         return None
 
     if not text or not text.strip():

@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from app.database.qdrant import init_qdrant
 from app.models.Interpretation import Interpretation
 from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db, normalize_phone_smart, \
-    notify_user, refine_search_query, perform_vector_search
+    notify_user, refine_search_query, perform_vector_search, interpret_event_details
 
 load_dotenv()
 
@@ -16,6 +16,11 @@ from app.modules.stt_manager import process_recording_to_text, save_file_locally
 from app.modules.zadarma_manager import fetch_call_recording_data
 from app.workers.kafka_worker import run_worker
 
+from googleapiclient.discovery import build
+from google.oauth2 import service_account
+
+SERVICE_ACCOUNT_FILE = os.getenv("GOOGLE_SERVICE_ACCOUNT_FILE")
+SCOPES = ['https://www.googleapis.com/auth/calendar']
 
 async def action_save_note(pbx_call_id: str, caller_id: str, text: str):
     interpretation: Interpretation = Interpretation(
@@ -69,9 +74,51 @@ async def action_search_note(pbx_call_id: str, caller_id: str, text: str):
     return None
 
 async def action_add_calendar(pbx_call_id: str, text: str):
-    logger.debug(f"Phone number: {pbx_call_id} {text}")
-    return None
+    call_session = await get_call_by_pbx_id(pbx_call_id)
 
+    if not call_session or not call_session.calendar_id:
+        logger.error(f"No calendar configured for call {pbx_call_id}")
+        return "No calendar configured."
+
+    try:
+        if not SERVICE_ACCOUNT_FILE or not os.path.exists(SERVICE_ACCOUNT_FILE):
+            raise EnvironmentError(f"Service account file missing at path: {SERVICE_ACCOUNT_FILE}")
+
+        interpretation = await interpret_event_details(text)
+
+        start_time = interpretation.get("start_time")
+        description = interpretation.get("description")
+        end_time = interpretation.get("end_time")
+        summary = interpretation.get("summary")
+
+        if not all([start_time, end_time, summary]):
+            missing = [field for field, val in
+                       {"start_time": start_time, "end_time": end_time, "summary": summary}.items()
+                       if not val]
+            logger.warning(f"Missing required fields {missing} for text: {text}")
+            return None
+
+        creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
+        service = build('calendar', 'v3', credentials=creds.with_scopes(SCOPES))
+
+        event = {
+            'summary': summary,
+            'description': description or "",
+            'start': {'dateTime': start_time},
+            'end': {'dateTime': end_time},
+        }
+
+        event_result = service.events().insert(
+            calendarId=call_session.calendar_id,
+            body=event
+        ).execute()
+
+        link = event_result.get('htmlLink')
+        await notify_user(call_session.caller_id, "Event Created", f"Successfully scheduled: {summary}. Link: {link}")
+        return f"Event created: {link}"
+    except Exception as e:
+        logger.error(f"Google Calendar API error: {e}")
+        return "Failed to create event."
 
 async def handle_call_record(payload):
     logger.info(f"Received message: {payload}")
