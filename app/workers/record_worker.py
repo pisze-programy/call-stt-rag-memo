@@ -3,6 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
+from app.database.caller_operations import get_caller
 from app.database.qdrant import init_qdrant
 from app.models.Interpretation import Interpretation
 from app.modules.memory_manager import interpret_input, embed_text, save_to_vector_db, normalize_phone_smart, \
@@ -74,9 +75,12 @@ async def action_search_note(pbx_call_id: str, caller_id: str, text: str):
     return None
 
 async def action_add_calendar(pbx_call_id: str, text: str):
-    call_session = await get_call_by_pbx_id(pbx_call_id)
+    call_session_data = await get_call_by_pbx_id(pbx_call_id)
+    caller_id = call_session_data.get("caller_id")
+    caller = await get_caller(caller_id)
+    calendar_id = caller.get("calendar_id")
 
-    if not call_session or not call_session.calendar_id:
+    if not calendar_id:
         logger.error(f"No calendar configured for call {pbx_call_id}")
         return "No calendar configured."
 
@@ -96,7 +100,7 @@ async def action_add_calendar(pbx_call_id: str, text: str):
                        {"start_time": start_time, "end_time": end_time, "summary": summary}.items()
                        if not val]
             logger.warning(f"Missing required fields {missing} for text: {text}")
-            return None
+            return "Missing required fields"
 
         creds = service_account.Credentials.from_service_account_file(SERVICE_ACCOUNT_FILE)
         service = build('calendar', 'v3', credentials=creds.with_scopes(SCOPES))
@@ -109,12 +113,12 @@ async def action_add_calendar(pbx_call_id: str, text: str):
         }
 
         event_result = service.events().insert(
-            calendarId=call_session.calendar_id,
+            calendarId=calendar_id,
             body=event
         ).execute()
 
         link = event_result.get('htmlLink')
-        await notify_user(call_session.caller_id, "Event Created", f"Successfully scheduled: {summary}. Link: {link}")
+        await notify_user(caller_id, "Event Created", f"Successfully scheduled: {summary}. Link: {link}")
         return f"Event created: {link}"
     except Exception as e:
         logger.error(f"Google Calendar API error: {e}")
@@ -141,8 +145,8 @@ async def handle_call_record(payload):
     text = await process_recording_to_text(local_path)
 
     call_session_data = await get_call_by_pbx_id(pbx_call_id)
-    internal = call_session_data["internal"]
-    caller_id = call_session_data["caller_id"]
+    internal = call_session_data.get("internal")
+    caller_id = call_session_data.get("caller_id")
 
     if not text:
         logger.info(f"No text for {pbx_call_id}")

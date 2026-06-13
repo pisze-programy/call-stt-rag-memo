@@ -23,12 +23,11 @@ async def handle_mail_event(payload):
             raise ValueError(f"Incomplete payload: {payload}")
 
         caller = await get_caller(caller_id)
+        email_address = caller.get("email_address")
 
-        if not caller or not caller.email_address:
+        if not caller or not email_address:
             logger.warning(f"No valid email found for {caller_id}")
             return
-
-        email_address = caller.email_address
 
         if not email_address:
             logger.warning(f"No email bound for {caller_id}, skipping")

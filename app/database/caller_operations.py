@@ -12,11 +12,8 @@ async def upsert_caller(caller_id: str):
         return_document=True
     )
 
-async def get_caller(caller_id: str) -> CallerSession | None:
-    data = await db.callers.find_one({"caller_id": caller_id})
-    if data:
-        return CallerSession(**data)
-    return None
+async def get_caller(caller_id: str) -> dict:
+    return await db.callers.find_one({"caller_id": caller_id})
 
 async def update_email(caller_id: str, email: str) -> bool:
     result = await db.callers.update_one(
