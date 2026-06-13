@@ -28,6 +28,12 @@ async def handle_save_note(phone, text):
             embedding,
             interpretation
         )
+
+        await notify_user(
+            phone,
+            "Note Saved",
+            f"Your note has been successfully saved:\n\n{text}"
+        )
     except Exception as e:
         logger.error(f"Note Interpretation error: {str(e)}")
         await notify_user(phone, "Note Save Error", f"Failed to process your note: {text}")
