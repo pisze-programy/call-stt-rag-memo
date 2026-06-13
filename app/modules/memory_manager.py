@@ -5,7 +5,6 @@ from datetime import datetime
 
 import phonenumbers
 from openai import AsyncOpenAI
-from openai.types import ResponseFormatJSONObject
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
 from openai.types.chat.completion_create_params import ResponseFormat
 from qdrant_client.models import Filter, FieldCondition, MatchValue
@@ -260,31 +259,31 @@ async def perform_vector_search(phone: str, text: str) -> str:
     answer = await interpret_search_query(text, context)
     return answer
 
-async def interpret_event_details(text: str) -> dict:
+async def interpret_event_details(text: str):
     response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
-        response_format=ResponseFormat(type="json_object"),
+        response_format={"type": "json_object"},
         messages=[
             ChatCompletionSystemMessageParam(
                 role="system",
                 content="""
                     Extract Google Calendar event details from the user's notes.
-                    If details are missing, set them to null.
-                
-                    OUTPUT SCHEMA:
+                    The current timestamp is provided at the end of the user's message — use it as the reference point for relative dates (e.g. "today", "tomorrow", "next Monday").
+                    
+                    Return a JSON object with exactly these fields:
+                    
                     {
-                      "summary": "string | null",
-                      "start_time": "YYYY-MM-DDTHH:MM:SSZ | null",
-                      "end_time": "YYYY-MM-DDTHH:MM:SSZ | null",
-                      "description": "string | null"
+                        "summary": "<string>",
+                        "start_time": "<ISO-8601 string | null>",
+                        "end_time": "<ISO-8601 string | null>",
+                        "description": "<string | null>"
                     }
-                
-                    CRITICAL RULES:
-                    - summary must be extracted from the note's topic.
-                    - Use current timestamp as the reference point for relative dates like "tomorrow" or "today".
-                    - If no date/time is mentioned, set start_time and end_time to null.
-                    - Output MUST be valid JSON only — no markdown fences, no preamble.
-                    - Keep language neutral.
+                    
+                    Rules:
+                    - summary: short title derived from the note's main topic. Null if nothing relevant.
+                    - start_time / end_time: ISO-8601 with timezone offset if inferable, otherwise UTC. Set both to null if no date or time is mentioned.
+                    - description: any remaining context, details, or notes not captured in summary. Null if nothing relevant.
+                    - Output raw JSON only — no markdown, no explanation, no extra keys.
                 """
             ),
             ChatCompletionUserMessageParam(
