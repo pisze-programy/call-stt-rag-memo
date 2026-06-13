@@ -267,28 +267,42 @@ async def interpret_event_details(text: str):
             ChatCompletionSystemMessageParam(
                 role="system",
                 content="""
-                    Extract Google Calendar event details from the user's notes.
-                    The current timestamp is provided at the end of the user's message — use it as the reference point for relative dates (e.g. "today", "tomorrow", "next Monday").
+                    Extract Google Calendar event details from a spoken note in any language.
+                    The current timestamp with timezone offset is provided at the end of the user's message — use it only as a reference point for resolving relative time expressions.
                     
                     Return a JSON object with exactly these fields:
                     
                     {
                         "summary": "<string>",
-                        "start_time": "<ISO-8601 string | null>",
-                        "end_time": "<ISO-8601 string | null>",
+                        "start_time": "<ISO-8601 string with timezone offset | null>",
+                        "end_time": "<ISO-8601 string with timezone offset | null>",
                         "description": "<string | null>"
                     }
                     
                     Rules:
-                    - summary: short title derived from the note's main topic. Null if nothing relevant.
-                    - start_time / end_time: ISO-8601 with timezone offset if inferable, otherwise UTC. Set both to null if no date or time is mentioned.
-                    - description: any remaining context, details, or notes not captured in summary. Null if nothing relevant.
+                    
+                    summary:
+                    - Short title capturing the main topic of the note. Never null.
+                    
+                    start_time / end_time:
+                    - Extract only if the note implies or states a time — past, present, or future.
+                    - Resolve relative expressions ("now", "tomorrow", "next Monday", "in 2 hours") using the provided timestamp.
+                    - "Now" or present-tense action ("I'm leaving", "I'm going") → use the provided timestamp.
+                    - If a duration is mentioned ("half an hour", "2 hours"), compute end_time = start_time + duration.
+                    - If only a date is mentioned with no time, set the time component to null and use date only.
+                    - If no time context can be inferred at all → set both to null. Never invent or assume.
+                    - Always preserve the timezone offset from the provided timestamp. Never convert to UTC.
+                    
+                    description:
+                    - Faithful, complete summary of the note's content.
+                    - Do not omit details, over-shorten, or reinterpret the user's intent.
+                    - Null only if there is truly nothing beyond the summary.
                     - Output raw JSON only — no markdown, no explanation, no extra keys.
                 """
             ),
             ChatCompletionUserMessageParam(
                 role="user",
-                content=f"User's notes: {text} and current timestamp is {datetime.now().isoformat()}"
+                content=f"User's notes: {text} and current timestamp is {datetime.now().astimezone().isoformat()}"
             )
         ]
     )
