@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from app.database.mongodb import db
-from app.models.call import CallStatus, CallSession
+from app.models.call import CallStatus
 
 
 async def initialize_call(pbx_call_id: str, caller_id: str, called_did: str, call_start: str, internal: str):
@@ -54,5 +54,5 @@ async def update_call_transcription(pbx_call_id: str, transcription: str, interp
             }}
     )
 
-async def get_call_by_pbx_id(pbx_call_id: str) -> CallSession:
+async def get_call_by_pbx_id(pbx_call_id: str):
     return await db.calls.find_one({"pbx_call_id": pbx_call_id})

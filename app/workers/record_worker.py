@@ -17,7 +17,7 @@ from app.modules.zadarma_manager import fetch_call_recording_data
 from app.workers.kafka_worker import run_worker
 
 
-async def action_save_note(pbx_call_id: str, text: str):
+async def action_save_note(pbx_call_id: str, caller_id: str, text: str):
     interpretation: Interpretation = Interpretation(
         note_type="unknown",
         activity=None,
@@ -38,8 +38,7 @@ async def action_save_note(pbx_call_id: str, text: str):
     await update_call_transcription(pbx_call_id, text, interpretation.model_dump())
 
     embedding = await embed_text(text)
-    call_info = await get_call_by_pbx_id(pbx_call_id)
-    caller_id = call_info.caller_id if call_info else None
+
     phone = normalize_phone_smart(caller_id)
 
     if phone is None:
@@ -54,9 +53,7 @@ async def action_save_note(pbx_call_id: str, text: str):
     )
     await notify_user(phone, "Call Processed", f"Your call has been transcribed and saved. {text}")
 
-async def action_search_note(pbx_call_id: str, text: str):
-    call_info = await get_call_by_pbx_id(pbx_call_id)
-    caller_id = call_info.caller_id if call_info else None
+async def action_search_note(pbx_call_id: str, caller_id: str, text: str):
     phone = normalize_phone_smart(caller_id)
 
     interpretation = await refine_search_query(text)
@@ -97,16 +94,17 @@ async def handle_call_record(payload):
     text = await process_recording_to_text(local_path)
 
     call_session_data = await get_call_by_pbx_id(pbx_call_id)
-    internal = call_session_data.internal
+    internal = call_session_data["internal"]
+    caller_id = call_session_data["caller_id"]
 
     if not text:
         logger.info(f"No text for {pbx_call_id}")
         return None
 
     if internal == "100":
-        await action_save_note(pbx_call_id, text)
+        await action_save_note(pbx_call_id, caller_id, text)
     elif internal == "200":
-        await action_search_note(pbx_call_id, text)
+        await action_search_note(pbx_call_id, caller_id, text)
     elif internal == "300":
         await action_add_calendar(pbx_call_id, text)
     return None
