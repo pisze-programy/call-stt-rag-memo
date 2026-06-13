@@ -1,4 +1,6 @@
-from fastapi import Query, Request, Response, APIRouter
+import os
+
+from fastapi import Query, Request, Response, APIRouter, Depends, HTTPException
 
 from app.modules.kafka_client import send_event
 
@@ -20,8 +22,11 @@ def verify_webhook(zd_echo: str = Query(None)):
 
 
 @router.post("/webhook/zadarma")
-async def handle_zadarma_webhook(request: Request):
+async def handle_zadarma_webhook(request: Request, token: str = Depends(verify_token)):
     # https://zadarma.com/en/support/api/#api_webhook_notify_record
+    if token != os.getenv("ZADARMA_WEBHOOK_TOKEN"):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
     form_data = await request.form()
     payload = {key: value for key, value in form_data.items()}
 
