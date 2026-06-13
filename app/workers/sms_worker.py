@@ -2,12 +2,10 @@ import asyncio
 import json
 
 from dotenv import load_dotenv
-from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.database.caller_operations import upsert_caller, update_email
-from app.database.qdrant import qdrant, COLLECTION_NAME
-from app.modules.memory_manager import save_to_vector_db, interpret_input, embed_text, interpret_search_query, \
-    normalize_phone_smart, notify_user
+from app.modules.memory_manager import save_to_vector_db, interpret_input, embed_text, normalize_phone_smart, \
+    notify_user, refine_search_query, perform_vector_search
 from app.modules.sms_manager import classify_sms_intent
 
 load_dotenv()
@@ -39,35 +37,20 @@ async def handle_save_note(phone, text):
         await notify_user(phone, "Note Save Error", f"Failed to process your note: {text}")
         return None
 
-async def handle_bind_email(phone, email):
+async def handle_bind_email(caller_id, email):
     if email is None:
         return None
-    await upsert_caller(phone)
-    await update_email(phone, email)
-    await notify_user(phone, "Email Bound", f"Your email {email} has been successfully registered.")
+    await upsert_caller(caller_id)
+    await update_email(caller_id, email)
+    await notify_user(caller_id, "Email Bound", f"Your email {email} has been successfully registered.")
     return None
 
-async def handle_query_notes(phone, text):
-    query_vector = await embed_text(text)
-    limit = 5
+async def handle_query_notes(caller_id, text):
+    interpretation = await refine_search_query(text)
+    answer = await perform_vector_search(caller_id, interpretation)
 
-    results = qdrant.query_points(
-        collection_name=COLLECTION_NAME,
-        query=query_vector,
-        query_filter=Filter(
-            must=[FieldCondition(key="caller_id", match=MatchValue(value=phone))]
-        ),
-        limit=limit,
-        with_payload=True,
-        with_vectors=False,
-    )
-
-    sorted_points = sorted(results.points, key=lambda x: x.payload.get("created_at", 0))
-    context_list = [f"--- NOTE START (Score: {hit.score:.3f}) ---\n{hit.payload.get('text', '')}" for hit in sorted_points]
-    context = "\n\n".join(context_list)
-    answer = await interpret_search_query(text, context)
     logger.info(f"Query result: {answer}")
-    await notify_user(phone, "Query Result", answer)
+    await notify_user(caller_id, "Query Result", answer)
     return None
 
 async def handle_sms(payload: dict):

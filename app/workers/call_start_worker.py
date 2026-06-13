@@ -19,12 +19,13 @@ async def handle_call_start(payload):
     caller_id = payload.get("caller_id")
     called_did = payload.get("called_did")
     call_start = payload.get("call_start")
+    internal = payload.get("internal")
     phone = normalize_phone_smart(caller_id)
 
     if phone is None:
         return
 
-    await initialize_call(pbx_call_id, phone, called_did, call_start)
+    await initialize_call(pbx_call_id, phone, called_did, call_start, internal)
     await upsert_caller(phone)
 
 

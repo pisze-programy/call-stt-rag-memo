@@ -6,8 +6,9 @@ from datetime import datetime
 import phonenumbers
 from openai import AsyncOpenAI
 from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
+from qdrant_client.models import Filter, FieldCondition, MatchValue
 
-from app.database.qdrant import qdrant
+from app.database.qdrant import qdrant, COLLECTION_NAME
 from app.models.Interpretation import Interpretation
 from app.modules.kafka_client import send_event
 
@@ -118,9 +119,8 @@ async def interpret_input(input: str) -> Interpretation:
                     VECTOR STRING RULES:
                     - Used ONLY for semantic embedding retrieval.
                     - Compact keyword list — NOT a sentence.
-                    - Include: note_type, action verbs, people names, places, domain terms, PL+EN if natural.
+                    - Include: note_type, action verbs, people names, places, domain terms.
                     - Do NOT include user IDs, phone numbers, or full sentences.
-                    - Example: "meeting work project collaboration Tomek spotkanie praca projekt"
 
                     ---
 
@@ -177,6 +177,30 @@ async def interpret_search_query(user_query: str, context: str) -> str:
     return response.choices[0].message.content
 
 
+async def refine_search_query(text: str) -> str:
+    system_prompt = (
+        "You are a search query optimizer for vector databases. "
+        "Transform the user query into a concise, semantically rich keyword string. "
+        "Remove filler words, greetings, and conversational nuances. "
+        "Include names, places, dates, and domain-specific terms. "
+        "Return ONLY the optimized query string. "
+        "Detect the language of the user query and respond in the same language."
+    )
+
+    user_content = f"User query: {text}"
+
+    response = await openai_client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ],
+        temperature=0.2
+    )
+
+    return response.choices[0].message.content
+
+
 async def embed_text(text: str) -> list[float]:
     response = await openai_client.embeddings.create(
         model="text-embedding-3-small",
@@ -207,3 +231,27 @@ async def notify_user(phone: str, subject: str, body: str):
         "subject": subject,
         "body": body
     })
+
+
+async def perform_vector_search(phone: str, text: str) -> str:
+    refined_query = await refine_search_query(text)
+    query_vector = await embed_text(refined_query)
+
+    results = qdrant.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_vector,
+        query_filter=Filter(
+            must=[FieldCondition(key="caller_id", match=MatchValue(value=phone))]
+        ),
+        limit=5,
+        with_payload=True,
+        with_vectors=False,
+    )
+
+    sorted_points = sorted(results.points, key=lambda x: x.payload.get("created_at", 0))
+    context_list = [f"--- NOTE START (Score: {hit.score:.3f}) ---\n{hit.payload.get('text', '')}" for hit in
+                    sorted_points]
+    context = "\n\n".join(context_list)
+
+    answer = await interpret_search_query(text, context)
+    return answer

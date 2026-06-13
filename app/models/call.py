@@ -13,6 +13,7 @@ class CallStatus(str, Enum):
 
 class CallSession(BaseModel):
     pbx_call_id: str
+    internal: str
     email_address: Optional[str] = None
     caller_id: str
     called_did: str
