@@ -13,6 +13,7 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 from app.database.qdrant import qdrant, COLLECTION_NAME
 from app.models.Interpretation import Interpretation
 from app.modules.kafka_client import send_event
+from app.modules.logger import logger
 
 openai_client = AsyncOpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -266,7 +267,7 @@ async def interpret_event_details(text: str) -> dict:
         messages=[
             ChatCompletionSystemMessageParam(
                 role="system",
-                content=f"""
+                content="""
                     Extract Google Calendar event details from the user's notes.
                     If details are missing, set them to null.
                 
@@ -279,18 +280,20 @@ async def interpret_event_details(text: str) -> dict:
                     }
                 
                     CRITICAL RULES:
-                    - Output MUST be valid JSON only — no markdown fences, no preamble.
                     - summary must be extracted from the note's topic.
-                    - Use current timestamp: {datetime.now().isoformat()} for relative references like "tomorrow".
+                    - Use current timestamp as the reference point for relative dates like "tomorrow" or "today".
                     - If no date/time is mentioned, set start_time and end_time to null.
+                    - Output MUST be valid JSON only — no markdown fences, no preamble.
                     - Keep language neutral.
                 """
             ),
             ChatCompletionUserMessageParam(
                 role="user",
-                content=f"User's notes: {text}"
+                content=f"User's notes: {text} and current timestamp is {datetime.now().isoformat()}"
             )
         ]
     )
+
+    logger.info(f"interpret_event_details response: {response.choices[0].message.content}")
 
     return json.loads(response.choices[0].message.content)

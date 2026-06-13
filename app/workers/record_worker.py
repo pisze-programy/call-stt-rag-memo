@@ -86,8 +86,6 @@ async def action_add_calendar(pbx_call_id: str, caller_id: str, text: str):
         if not SERVICE_ACCOUNT_FILE or not os.path.exists(SERVICE_ACCOUNT_FILE):
             raise EnvironmentError(f"Service account file missing at path: {SERVICE_ACCOUNT_FILE}")
 
-        logger.info(f"Interpretation text param: {text}")
-
         interpretation = await interpret_event_details(text)
 
         logger.info(f"Interpretation result: {interpretation}")
