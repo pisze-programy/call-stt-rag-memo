@@ -74,9 +74,7 @@ async def action_search_note(pbx_call_id: str, caller_id: str, text: str):
     await notify_user(phone, "Query Result", answer)
     return None
 
-async def action_add_calendar(pbx_call_id: str, text: str):
-    call_session_data = await get_call_by_pbx_id(pbx_call_id)
-    caller_id = call_session_data.get("caller_id")
+async def action_add_calendar(pbx_call_id: str, caller_id: str, text: str):
     caller = await get_caller(caller_id)
     calendar_id = caller.get("calendar_id")
 
@@ -88,7 +86,11 @@ async def action_add_calendar(pbx_call_id: str, text: str):
         if not SERVICE_ACCOUNT_FILE or not os.path.exists(SERVICE_ACCOUNT_FILE):
             raise EnvironmentError(f"Service account file missing at path: {SERVICE_ACCOUNT_FILE}")
 
+        logger.info(f"Interpretation text param: {text}")
+
         interpretation = await interpret_event_details(text)
+
+        logger.info(f"Interpretation result: {interpretation}")
 
         start_time = interpretation.get("start_time")
         description = interpretation.get("description")
@@ -157,7 +159,7 @@ async def handle_call_record(payload):
     elif internal == "200":
         await action_search_note(pbx_call_id, caller_id, text)
     elif internal == "300":
-        await action_add_calendar(pbx_call_id, text)
+        await action_add_calendar(pbx_call_id, caller_id, text)
     return None
 
 

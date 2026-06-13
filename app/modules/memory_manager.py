@@ -180,22 +180,24 @@ async def interpret_search_query(user_query: str, context: str) -> str:
 
 
 async def refine_search_query(text: str) -> str:
-    system_prompt = (
-        "You are a search query optimizer for vector databases. "
-        "Transform the user query into a concise, semantically rich keyword string. "
-        "Remove filler words, greetings, and conversational nuances. "
-        "Include names, places, dates, and domain-specific terms. "
-        "Return ONLY the optimized query string. "
-        "Detect the language of the user query and respond in the same language."
-    )
-
-    user_content = f"User query: {text}"
-
     response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content}
+            ChatCompletionSystemMessageParam(
+                role="system",
+                content=""
+                        "You are a search query optimizer for vector databases. "
+                        "Transform the user query into a concise, semantically rich keyword string. "
+                        "Remove filler words, greetings, and conversational nuances. "
+                        "Include names, places, dates, and domain-specific terms. "
+                        "Return ONLY the optimized query string. "
+                        "Detect the language of the user query and respond in the same language."
+                        "",
+            ),
+            ChatCompletionUserMessageParam(
+                role="user",
+                content=f"User query: {text}"
+            )
         ],
         temperature=0.2
     )
@@ -234,7 +236,6 @@ async def notify_user(phone: str, subject: str, body: str):
         "body": body
     })
 
-
 async def perform_vector_search(phone: str, text: str) -> str:
     refined_query = await refine_search_query(text)
     query_vector = await embed_text(refined_query)
@@ -259,8 +260,6 @@ async def perform_vector_search(phone: str, text: str) -> str:
     return answer
 
 async def interpret_event_details(text: str) -> dict:
-    current_timestamp = datetime.now().isoformat()
-
     response = await openai_client.chat.completions.create(
         model="gpt-4o-mini",
         response_format=ResponseFormat(type="json_object"),
@@ -280,15 +279,16 @@ async def interpret_event_details(text: str) -> dict:
                     }
                 
                     CRITICAL RULES:
-                    - Output MUST be valid JSON only.
-                    - If no date/time is mentioned, set start_time and end_time to null.
+                    - Output MUST be valid JSON only — no markdown fences, no preamble.
                     - summary must be extracted from the note's topic.
-                    - Use current timestamp: {current_timestamp} for relative references like "tomorrow".
+                    - Use current timestamp: {datetime.now().isoformat()} for relative references like "tomorrow".
+                    - If no date/time is mentioned, set start_time and end_time to null.
+                    - Keep language neutral.
                 """
             ),
             ChatCompletionUserMessageParam(
                 role="user",
-                content=text
+                content=f"User's notes: {text}"
             )
         ]
     )
