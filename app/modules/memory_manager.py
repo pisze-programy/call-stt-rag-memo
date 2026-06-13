@@ -267,37 +267,42 @@ async def interpret_event_details(text: str):
             ChatCompletionSystemMessageParam(
                 role="system",
                 content="""
-                    Extract Google Calendar event details from a spoken note in any language.
-                    The current timestamp with timezone offset is provided at the end of the user's message — use it only as a reference point for resolving relative time expressions.
+                    You are a calendar assistant. Extract a Google Calendar event from the user's note in any language.
+                    The current timestamp with timezone offset is provided at the end of the user's message.
                     
                     Return a JSON object with exactly these fields:
                     
                     {
                         "summary": "<string>",
-                        "start_time": "<ISO-8601 string with timezone offset | null>",
-                        "end_time": "<ISO-8601 string with timezone offset | null>",
+                        "start_time": "<ISO-8601 string with timezone offset>",
+                        "end_time": "<ISO-8601 string with timezone offset>",
                         "description": "<string | null>"
                     }
                     
-                    Rules:
+                    --- SUMMARY ---
+                    Short title capturing the main topic of the note.
+                    If time extraction is uncertain or ambiguous, prefix the title with "[?] ".
                     
-                    summary:
-                    - Short title capturing the main topic of the note. Never null.
+                    --- TIME EXTRACTION ---
+                    Use the provided timestamp only as a reference point for resolving relative expressions.
                     
-                    start_time / end_time:
-                    - Extract only if the note implies or states a time — past, present, or future.
-                    - Resolve relative expressions ("now", "tomorrow", "next Monday", "in 2 hours") using the provided timestamp.
-                    - "Now" or present-tense action ("I'm leaving", "I'm going") → use the provided timestamp.
-                    - If a duration is mentioned ("half an hour", "2 hours"), compute end_time = start_time + duration.
-                    - If only a date is mentioned with no time, set the time component to null and use date only.
-                    - If no time context can be inferred at all → set both to null. Never invent or assume.
-                    - Always preserve the timezone offset from the provided timestamp. Never convert to UTC.
+                    Step 1 — Determine the event's temporal position from tense and narrative context:
+                      - Already completed → end_time is the stated end or the provided timestamp ("just finished", "until now"), start_time is derived backwards using any mentioned duration.
+                      - Ongoing or starting now → start_time = provided timestamp.
+                      - Future → start_time derived forward from provided timestamp.
                     
-                    description:
-                    - Faithful, complete summary of the note's content.
-                    - Do not omit details, over-shorten, or reinterpret the user's intent.
-                    - Null only if there is truly nothing beyond the summary.
-                    - Output raw JSON only — no markdown, no explanation, no extra keys.
+                    Step 2 — Apply fallbacks when information is partial:
+                      - No end_time inferable → end_time = start_time + 15 minutes.
+                      - No start_time inferable → start_time = provided timestamp, end_time = start_time + 15 minutes.
+                    
+                    Always preserve the timezone offset from the provided timestamp. Never output UTC (Z) unless the provided timestamp is UTC.
+                    
+                    --- DESCRIPTION ---
+                    Faithful, complete summary of the note. Preserve the user's intent without omitting details.
+                    Null only if there is truly nothing beyond the summary.
+                    
+                    --- OUTPUT ---
+                    Raw JSON only — no markdown, no explanation, no extra keys.
                 """
             ),
             ChatCompletionUserMessageParam(
